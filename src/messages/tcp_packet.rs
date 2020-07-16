@@ -2,13 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::net::SocketAddr;
-use smoltcp::{
-    wire::{
-        Ipv4Packet, Ipv6Packet, TcpPacket, IpProtocol as Protocol,
-    },
-};
-use std::hash::{Hash, Hasher};
-use std::collections::hash_map::DefaultHasher;
+use smoltcp::wire::{Ipv4Packet, Ipv6Packet, TcpPacket};
 
 pub type IdAddrs = (SocketAddr, SocketAddr);
 
@@ -23,6 +17,8 @@ impl Packet {
     /// Build new (semi-universal) packet from raw buffer, from *correct* IPv(4/6) + TCP packet
     /// No other protocols are supported
     pub fn new(buf: &[u8]) -> Option<Self> {
+        use smoltcp::wire::IpProtocol::Tcp;
+
         if buf.len() == 0 {
             return None;
         }
@@ -30,13 +26,13 @@ impl Packet {
 
         if ver == 4 {
             let packet = Ipv4Packet::new_checked(buf).ok()?;
-            if packet.protocol() != Protocol::Tcp {
+            if packet.protocol() != Tcp {
                 return None;
             }
             Some(Self::V4(Ipv4Packet::new_unchecked(buf.to_vec())))
         } else if ver == 6 {
             let packet = Ipv6Packet::new_checked(buf).ok()?;
-            if packet.next_header() != Protocol::Tcp {
+            if packet.next_header() != Tcp {
                 return None;
             }
             Some(Self::V6(Ipv6Packet::new_unchecked(buf.to_vec())))
@@ -48,15 +44,15 @@ impl Packet {
     /// Get raw buffer of this packet
     pub fn ip_buffer(&self) -> &[u8] {
         match self {
-            Self::V4(ref packet) => packet.as_ref(),
-            Self::V6(ref packet) => packet.as_ref(),
+            &Self::V4(ref packet) => packet.as_ref(),
+            &Self::V6(ref packet) => packet.as_ref(),
         }
     }
 
     pub fn tcp_buffer(&self) -> &[u8] {
         match self {
-            Self::V4(_) => Ipv4Packet::new_unchecked(self.ip_buffer()).payload(),
-            Self::V6(_) => Ipv6Packet::new_unchecked(self.ip_buffer()).payload(),
+            &Self::V4(_) => Ipv4Packet::new_unchecked(self.ip_buffer()).payload(),
+            &Self::V6(_) => Ipv6Packet::new_unchecked(self.ip_buffer()).payload(),
         }
     }
 
@@ -70,8 +66,8 @@ impl Packet {
     pub fn source_address(&self) -> SocketAddr {
         let port = self.tcp_packet().src_port();
         match self {
-            Self::V4(ref packet) => SocketAddr::new(packet.src_addr().0.into(), port),
-            Self::V6(ref packet) => SocketAddr::new(packet.src_addr().0.into(), port),
+            &Self::V4(ref packet) => SocketAddr::new(packet.src_addr().0.into(), port),
+            &Self::V6(ref packet) => SocketAddr::new(packet.src_addr().0.into(), port),
         }
     }
 
@@ -80,14 +76,17 @@ impl Packet {
     pub fn destination_address(&self) -> SocketAddr {
         let port = self.tcp_packet().dst_port();
         match self {
-            Self::V4(ref packet) => SocketAddr::new(packet.dst_addr().0.into(), port),
-            Self::V6(ref packet) => SocketAddr::new(packet.dst_addr().0.into(), port),
+            &Self::V4(ref packet) => SocketAddr::new(packet.dst_addr().0.into(), port),
+            &Self::V6(ref packet) => SocketAddr::new(packet.dst_addr().0.into(), port),
         }
     }
 
     #[inline]
     /// Socket Address identifying specific packet chain
     pub fn identification_pair(&self) -> IdAddrs {
+        use std::hash::{Hash, Hasher};
+        use std::collections::hash_map::DefaultHasher;
+
         let mut hasher = DefaultHasher::new();
         self.source_address().hash(&mut hasher);
         let sh = hasher.finish();

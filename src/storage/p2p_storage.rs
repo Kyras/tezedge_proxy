@@ -737,7 +737,7 @@ pub(crate) mod secondary_indexes {
         type FieldType = bool;
 
         fn accessor(value: &<P2pStore as KeyValueSchema>::Value) -> Option<Self::FieldType> {
-            Some(value.source_type().as_bool())
+            Some(value.source_type().into_bool())
         }
 
         fn make_index(key: &<P2pStore as KeyValueSchema>::Key, value: Self::FieldType) -> SourceTypeKey {

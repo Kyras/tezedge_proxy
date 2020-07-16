@@ -1,0 +1,5 @@
+reorder_imports = false
+reorder_modules = false
+trailing_comma = "Vertical"
+match_block_trailing_comma = true
+edition = "2018"

@@ -24,31 +24,43 @@ pub enum SourceType {
 impl SourceType {
     pub fn from_p2p_msg(msg: &PeerMessage, incoming: bool) -> Self {
         match msg {
-            PeerMessage::Disconnect | PeerMessage::ConnectionMessage(_) | PeerMessage::MetadataMessage(_)
-            | PeerMessage::Advertise(_) | PeerMessage::Bootstrap | PeerMessage::SwapRequest(_)
-            | PeerMessage::GetCurrentBranch(_) | PeerMessage::Deactivate(_) | PeerMessage::GetCurrentHead(_)
-            | PeerMessage::GetBlockHeaders(_) | PeerMessage::GetOperations(_) | PeerMessage::GetProtocols(_)
-            | PeerMessage::GetOperationHashesForBlocks(_) | PeerMessage::GetOperationsForBlocks(_) => Self::from_incoming(incoming),
-            PeerMessage::SwapAck(_) | PeerMessage::CurrentBranch(_) | PeerMessage::CurrentHead(_)
-            | PeerMessage::BlockHeader(_) | PeerMessage::Operation(_) | PeerMessage::Protocol(_)
-            | PeerMessage::OperationHashesForBlock(_) | PeerMessage::OperationsForBlocks(_) => Self::from_incoming(!incoming),
-            PeerMessage::_Reserved => Self::from_incoming(incoming),
+            | PeerMessage::Disconnect
+            | PeerMessage::ConnectionMessage(_)
+            | PeerMessage::MetadataMessage(_)
+            | PeerMessage::Advertise(_)
+            | PeerMessage::Bootstrap
+            | PeerMessage::SwapRequest(_)
+            | PeerMessage::GetCurrentBranch(_)
+            | PeerMessage::Deactivate(_)
+            | PeerMessage::GetCurrentHead(_)
+            | PeerMessage::GetBlockHeaders(_)
+            | PeerMessage::GetOperations(_)
+            | PeerMessage::GetProtocols(_)
+            | PeerMessage::GetOperationHashesForBlocks(_)
+            | PeerMessage::GetOperationsForBlocks(_) => Self::from_incoming(incoming),
+            | PeerMessage::SwapAck(_)
+            | PeerMessage::CurrentBranch(_)
+            | PeerMessage::CurrentHead(_)
+            | PeerMessage::BlockHeader(_)
+            | PeerMessage::Operation(_)
+            | PeerMessage::Protocol(_)
+            | PeerMessage::OperationHashesForBlock(_)
+            | PeerMessage::OperationsForBlocks(_) => Self::from_incoming(!incoming),
+            | PeerMessage::_Reserved => Self::from_incoming(incoming),
         }
     }
 
     pub fn from_incoming(incoming: bool) -> Self {
-        if incoming {
-            Self::Remote
-        } else {
-            Self::Local
+        match incoming {
+            false => Self::Local,
+            true => Self::Remote,
         }
     }
 
-    pub fn as_bool(self) -> bool {
-        if Self::Local == self {
-            false
-        } else {
-            true
+    pub fn into_bool(self) -> bool {
+        match self {
+            Self::Local => false,
+            Self::Remote => true,
         }
     }
 }
@@ -65,26 +77,36 @@ pub struct P2pMessage {
 
 impl Decoder for P2pMessage {
     fn decode(bytes: &[u8]) -> Result<Self, SchemaError> {
-        serde_cbor::from_slice(bytes)
-            .map_err(|_| SchemaError::DecodeError)
+        serde_cbor::from_slice(bytes).map_err(|_| SchemaError::DecodeError)
     }
 }
 
 impl Encoder for P2pMessage {
     fn encode(&self) -> Result<Vec<u8>, SchemaError> {
-        serde_cbor::to_vec(self)
-            .map_err(|_| SchemaError::EncodeError)
+        serde_cbor::to_vec(self).map_err(|_| SchemaError::EncodeError)
     }
 }
 
 impl P2pMessage {
     fn make_ts() -> u128 {
-        SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
     }
 
-    pub fn new<T: Into<PeerMessage>>(remote_addr: SocketAddr, incoming: bool, values: Vec<T>) -> Self {
-        let payload = values.into_iter().map(|x| x.into()).collect::<Vec<PeerMessage>>();
-        let source_type = payload.first().map(|msg| SourceType::from_p2p_msg(msg, incoming))
+    pub fn new<T: Into<PeerMessage>>(
+        remote_addr: SocketAddr,
+        incoming: bool,
+        values: Vec<T>,
+    ) -> Self {
+        let payload = values
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<PeerMessage>>();
+        let source_type = payload
+            .first()
+            .map(|msg| SourceType::from_p2p_msg(msg, incoming))
             .unwrap_or(SourceType::from_incoming(incoming));
         Self {
             id: None,
@@ -156,10 +178,18 @@ impl From<TezosPeerMessage> for PeerMessage {
             TezosPeerMessage::Operation(msg) => PeerMessage::Operation(msg.into()),
             TezosPeerMessage::GetProtocols(msg) => PeerMessage::GetProtocols(msg.into()),
             TezosPeerMessage::Protocol(msg) => PeerMessage::Protocol(msg.into()),
-            TezosPeerMessage::GetOperationHashesForBlocks(msg) => PeerMessage::GetOperationHashesForBlocks(msg.into()),
-            TezosPeerMessage::OperationHashesForBlock(msg) => PeerMessage::OperationHashesForBlock(msg.into()),
-            TezosPeerMessage::GetOperationsForBlocks(msg) => PeerMessage::GetOperationsForBlocks(msg.into()),
-            TezosPeerMessage::OperationsForBlocks(msg) => PeerMessage::OperationsForBlocks(msg.into()),
+            TezosPeerMessage::GetOperationHashesForBlocks(msg) => {
+                PeerMessage::GetOperationHashesForBlocks(msg.into())
+            },
+            TezosPeerMessage::OperationHashesForBlock(msg) => {
+                PeerMessage::OperationHashesForBlock(msg.into())
+            },
+            TezosPeerMessage::GetOperationsForBlocks(msg) => {
+                PeerMessage::GetOperationsForBlocks(msg.into())
+            },
+            TezosPeerMessage::OperationsForBlocks(msg) => {
+                PeerMessage::OperationsForBlocks(msg.into())
+            },
         }
     }
 }
@@ -188,7 +218,11 @@ impl From<OperationsForBlocksMessage> for MappedOperationsForBlocksMessage {
         Self {
             operations_for_block: value.operations_for_block().into(),
             operation_hashes_path: value.operation_hashes_path().clone(),
-            operations: value.operations().iter().map(|x| MappedOperation::from(x)).collect(),
+            operations: value
+                .operations()
+                .iter()
+                .map(|x| MappedOperation::from(x))
+                .collect(),
         }
     }
 }
@@ -210,13 +244,17 @@ impl From<&Operation> for MappedOperation {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MappedGetOperationsForBlocksMessage {
-    get_operations_for_blocks: Vec<MappedOperationsForBlock>
+    get_operations_for_blocks: Vec<MappedOperationsForBlock>,
 }
 
 impl From<GetOperationsForBlocksMessage> for MappedGetOperationsForBlocksMessage {
     fn from(value: GetOperationsForBlocksMessage) -> Self {
         Self {
-            get_operations_for_blocks: value.get_operations_for_blocks().iter().map(|x| MappedOperationsForBlock::from(x)).collect(),
+            get_operations_for_blocks: value
+                .get_operations_for_blocks()
+                .iter()
+                .map(|x| MappedOperationsForBlock::from(x))
+                .collect(),
         }
     }
 }
@@ -248,21 +286,28 @@ impl From<OperationHashesForBlocksMessage> for MappedOperationHashesForBlocksMes
         Self {
             operation_hashes_for_block: value.operation_hashes_for_block().into(),
             operation_hashes_path: value.operation_hashes_path().clone(),
-            operation_hashes: value.operation_hashes().iter().map(|x| HashType::OperationHash.bytes_to_string(x)).collect(),
+            operation_hashes: value
+                .operation_hashes()
+                .iter()
+                .map(|x| HashType::OperationHash.bytes_to_string(x))
+                .collect(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MappedGetOperationHashesForBlocksMessage {
-    get_operation_hashes_for_blocks: Vec<MappedOperationHashesForBlock>
+    get_operation_hashes_for_blocks: Vec<MappedOperationHashesForBlock>,
 }
 
 impl From<GetOperationHashesForBlocksMessage> for MappedGetOperationHashesForBlocksMessage {
     fn from(value: GetOperationHashesForBlocksMessage) -> Self {
         Self {
-            get_operation_hashes_for_blocks: value.get_operation_hashes_for_blocks().iter()
-                .map(|x| MappedOperationHashesForBlock::from(x)).collect(),
+            get_operation_hashes_for_blocks: value
+                .get_operation_hashes_for_blocks()
+                .iter()
+                .map(|x| MappedOperationHashesForBlock::from(x))
+                .collect(),
         }
     }
 }
@@ -290,9 +335,13 @@ pub struct MappedGetProtocolsMessage {
 impl From<GetProtocolsMessage> for MappedGetProtocolsMessage {
     fn from(value: GetProtocolsMessage) -> Self {
         let mut json = serde_json::to_value(value).unwrap();
-        let protos: Vec<Vec<u8>> = serde_json::from_value(json.get_mut("get_protocols").unwrap().take()).unwrap();
+        let protos: Vec<Vec<u8>> =
+            serde_json::from_value(json.get_mut("get_protocols").unwrap().take()).unwrap();
         Self {
-            get_protocols: protos.iter().map(|x| HashType::ProtocolHash.bytes_to_string(x)).collect(),
+            get_protocols: protos
+                .iter()
+                .map(|x| HashType::ProtocolHash.bytes_to_string(x))
+                .collect(),
         }
     }
 }
@@ -306,7 +355,8 @@ pub struct MappedOperationMessage {
 impl From<OperationMessage> for MappedOperationMessage {
     fn from(value: OperationMessage) -> Self {
         let mut json = serde_json::to_value(value).unwrap();
-        let operation: Operation = serde_json::from_value(json.get_mut("operation").unwrap().take()).unwrap();
+        let operation: Operation =
+            serde_json::from_value(json.get_mut("operation").unwrap().take()).unwrap();
         Self {
             branch: HashType::BlockHash.bytes_to_string(operation.branch()),
             data: hex::encode(operation.data()),
@@ -316,16 +366,19 @@ impl From<OperationMessage> for MappedOperationMessage {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MappedGetOperationsMessage {
-    get_operations: Vec<String>
+    get_operations: Vec<String>,
 }
 
 impl From<GetOperationsMessage> for MappedGetOperationsMessage {
     fn from(value: GetOperationsMessage) -> Self {
         let mut json = serde_json::to_value(value).unwrap();
-        let ops: Vec<Vec<u8>> = serde_json::from_value(json.get_mut("get_operations").unwrap().take()).unwrap();
+        let ops: Vec<Vec<u8>> =
+            serde_json::from_value(json.get_mut("get_operations").unwrap().take()).unwrap();
         Self {
-            get_operations: ops.iter()
-                .map(|x| HashType::OperationHash.bytes_to_string(x)).collect(),
+            get_operations: ops
+                .iter()
+                .map(|x| HashType::OperationHash.bytes_to_string(x))
+                .collect(),
         }
     }
 }
@@ -338,20 +391,24 @@ pub struct MappedBlockHeaderMessage {
 impl From<BlockHeaderMessage> for MappedBlockHeaderMessage {
     fn from(value: BlockHeaderMessage) -> Self {
         Self {
-            block_header: value.block_header().clone().into()
+            block_header: value.block_header().clone().into(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MappedGetBlockHeadersMessage {
-    get_block_headers: Vec<String>
+    get_block_headers: Vec<String>,
 }
 
 impl From<GetBlockHeadersMessage> for MappedGetBlockHeadersMessage {
     fn from(value: GetBlockHeadersMessage) -> Self {
         Self {
-            get_block_headers: value.get_block_headers().iter().map(|x| HashType::BlockHash.bytes_to_string(x)).collect(),
+            get_block_headers: value
+                .get_block_headers()
+                .iter()
+                .map(|x| HashType::BlockHash.bytes_to_string(x))
+                .collect(),
         }
     }
 }
@@ -382,15 +439,23 @@ pub struct MappedMempool {
 impl From<&Mempool> for MappedMempool {
     fn from(value: &Mempool) -> Self {
         Self {
-            known_valid: value.known_valid().iter().map(|x| HashType::OperationHash.bytes_to_string(x)).collect(),
-            pending: value.pending().iter().map(|x| HashType::OperationHash.bytes_to_string(x)).collect(),
+            known_valid: value
+                .known_valid()
+                .iter()
+                .map(|x| HashType::OperationHash.bytes_to_string(x))
+                .collect(),
+            pending: value
+                .pending()
+                .iter()
+                .map(|x| HashType::OperationHash.bytes_to_string(x))
+                .collect(),
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MappedGetCurrentHeadMessage {
-    chain_id: String
+    chain_id: String,
 }
 
 impl From<GetCurrentHeadMessage> for MappedGetCurrentHeadMessage {
@@ -439,7 +504,11 @@ impl From<CurrentBranch> for MappedCurrentBranch {
     fn from(value: CurrentBranch) -> Self {
         Self {
             current_head: value.current_head().clone().into(),
-            history: value.history().iter().map(|x| HashType::BlockHash.bytes_to_string(x)).collect(),
+            history: value
+                .history()
+                .iter()
+                .map(|x| HashType::BlockHash.bytes_to_string(x))
+                .collect(),
         }
     }
 }
@@ -466,7 +535,8 @@ impl From<BlockHeader> for MappedBlockHeader {
             validation_pass: value.validation_pass().clone(),
             fitness: value.fitness().clone(),
             context: HashType::ContextHash.bytes_to_string(value.context()),
-            operations_hash: HashType::OperationListListHash.bytes_to_string(value.operations_hash()),
+            operations_hash: HashType::OperationListListHash
+                .bytes_to_string(value.operations_hash()),
             predecessor: HashType::BlockHash.bytes_to_string(value.predecessor()),
             protocol_data: hex::encode(value.protocol_data()),
         }
@@ -475,7 +545,7 @@ impl From<BlockHeader> for MappedBlockHeader {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MappedGetCurrentBranchMessage {
-    pub chain_id: String
+    pub chain_id: String,
 }
 
 impl From<GetCurrentBranchMessage> for MappedGetCurrentBranchMessage {
@@ -506,4 +576,3 @@ impl From<ConnectionMessage> for MappedConnectionMessage {
         }
     }
 }
-
