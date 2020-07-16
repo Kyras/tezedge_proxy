@@ -14,6 +14,9 @@ use crate::{
 };
 use crate::system::processor::spawn_processor;
 
+#[cfg(not(debug_assertions))]
+use tracing::field::display;
+
 pub fn spawn_packet_orchestrator(settings: SystemSettings) -> UnboundedSender<Packet> {
     let (sender, mut receiver) = unbounded_channel::<Packet>();
 

@@ -9,6 +9,9 @@ use tokio::{
 use crate::system::SystemSettings;
 use crate::messages::log_message::LogMessage;
 
+#[cfg(not(debug_assertions))]
+use tracing::field::display;
+
 pub async fn syslog_producer(settings: SystemSettings) -> io::Result<()> {
     let socket = UdpSocket::bind(("0.0.0.0", settings.syslog_port)).await?;
     info!(port = 13131, "started listening for syslog");
@@ -23,7 +26,7 @@ pub async fn syslog_producer(settings: SystemSettings) -> io::Result<()> {
                 let msg = syslog_loose::parse_message(log);
                 let mut log_msg = LogMessage::from(msg);
                 if let Err(err) = settings.storage.log().store_message(&mut log_msg) {
-                    error!(error = display(err), "failed to store log");
+                    error!(error = display(&err), "failed to store log");
                 }
             }
         }

@@ -12,6 +12,9 @@ use crate::storage::log_storage::secondary_indexes::{LevelIndex, LogLevel, Times
 use crate::storage::secondary_index::SecondaryIndex;
 use crate::storage::sorted_intersect::sorted_intersect;
 
+#[cfg(not(debug_assertions))]
+use tracing::field::display;
+
 pub type LogStorageKV = dyn KeyValueStoreWithSchema<LogStore> + Sync + Send;
 
 #[derive(Debug, Default, Clone)]
@@ -141,7 +144,7 @@ impl LogStore {
                     None
                 }
                 Err(err) => {
-                    error!(index = index, error = display(err), "failed to load value");
+                    error!(index = index, error = display(&err), "failed to load value");
                     None
                 }
             }
@@ -170,6 +173,9 @@ pub(crate) mod secondary_indexes {
     use crate::storage::secondary_index::SecondaryIndex;
     use std::convert::{TryFrom, TryInto};
 
+    #[cfg(not(debug_assertions))]
+    use tracing::field::display;
+    
     pub type LevelIndexKV = dyn KeyValueStoreWithSchema<LevelIndex> + Sync + Send;
 
     #[derive(Clone)]

@@ -4,7 +4,6 @@
 pub mod common;
 
 use common::{debugger_url, get_rpc_as_json};
-use std::collections::HashMap;
 
 const V2_ENDPOINT: &str = "v2/p2p";
 const EXPECTED_MESSAGES: usize = 6;

@@ -24,6 +24,9 @@ use crate::system::SystemSettings;
 use tezos_messages::p2p::binary_message::BinaryMessage;
 use crate::storage::MessageStore;
 
+#[cfg(not(debug_assertions))]
+use tracing::field::display;
+
 struct Parser {
     pub initializer: SocketAddr,
     receiver: UnboundedReceiver<Packet>,
@@ -83,7 +86,7 @@ impl Parser {
                 result
             }
             Err(err) => {
-                trace!(addr = display(self.initializer), error = display(err), "is not valid tezos p2p connection");
+                trace!(addr = display(self.initializer), error = display(&err), "is not valid tezos p2p connection");
                 self.state = ParserState::Irrelevant;
                 None
             }
@@ -97,7 +100,7 @@ impl Parser {
             match self.encryption.process_encrypted(packet) {
                 Ok(result) => result,
                 Err(err) => {
-                    info!(addr = display(self.initializer), error = display(err), "received invalid message");
+                    info!(addr = display(self.initializer), error = display(&err), "received invalid message");
                     self.state = ParserState::Irrelevant;
                     None
                 }

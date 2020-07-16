@@ -10,6 +10,9 @@ use crate::system::SystemSettings;
 use crate::messages::p2p_message::P2pMessage;
 use crate::storage::MessageStore;
 
+#[cfg(not(debug_assertions))]
+use tracing::field::display;
+
 type ProcessorTrait = dyn Processor + Sync + Send + 'static;
 
 #[async_trait]
@@ -59,7 +62,7 @@ impl DatabaseProcessor {
             loop {
                 if let Some(mut msg) = receiver.recv().await {
                     if let Err(err) = store.p2p().store_message(&mut msg) {
-                        error!(error = display(err), "failed to store message");
+                        error!(error = display(&err), "failed to store message");
                     }
                 }
             }
