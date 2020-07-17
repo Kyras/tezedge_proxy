@@ -26,6 +26,11 @@ pub fn debugger_url() -> String {
         .unwrap()
 }
 
+pub fn cadvisor_url() -> String {
+    env::var("CADVISOR_URL")
+        .unwrap_or("http://localhost:8080".to_string())
+}
+
 pub fn node_url() -> String {
     env::var("NODE_URL")
         //.unwrap_or("http://116.202.128.230:48732".to_string())
