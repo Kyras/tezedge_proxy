@@ -7,7 +7,7 @@ use std::{
 };
 use rocksdb::DB;
 use storage::persistent::{KeyValueStoreWithSchema, KeyValueSchema};
-use crate::messages::metric_message::ContainerStatsMessage;
+use crate::messages::metric_message::MetricMessage;
 
 #[derive(Debug, Default, Clone)]
 pub struct MetricFilters {
@@ -34,7 +34,7 @@ pub struct MetricStore {
 
 impl KeyValueSchema for MetricStore {
     type Key = u64;
-    type Value = ContainerStatsMessage;
+    type Value = MetricMessage;
 
     fn name() -> &'static str { "metric_message_storage" }
 }

@@ -3,7 +3,33 @@ use storage::persistent::{Decoder, Encoder, SchemaError};
 use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ContainerStatsMessage {
+pub struct MetricMessage(pub ContainerStats);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContainerInfo {
+    #[serde(default)]
+    pub id: String,
+
+    pub name: String,
+
+    #[serde(default)]
+    pub aliases: Vec<String>,
+
+    #[serde(default)]
+    pub namespace: String,
+
+    #[serde(default)]
+    pub subcontainers: Vec<ContainerInfo>,
+
+    #[serde(skip)]
+    pub spec: (),
+
+    #[serde(default)]
+    pub stats: Vec<ContainerStats>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContainerStats {
     #[serde(with = "date_format")]
     pub timestamp: DateTime<Utc>,
 
@@ -35,14 +61,28 @@ pub struct MemoryStatsMemoryData {
     pub pgmajfault: u64,    
 }
 
-impl Decoder for ContainerStatsMessage {
+impl Decoder for MetricMessage {
     fn decode(bytes: &[u8]) -> Result<Self, SchemaError> {
         serde_cbor::from_slice(bytes)
             .map_err(|_| SchemaError::DecodeError)
     }
 }
 
-impl Encoder for ContainerStatsMessage {
+impl Encoder for MetricMessage {
+    fn encode(&self) -> Result<Vec<u8>, SchemaError> {
+        serde_cbor::to_vec(self)
+            .map_err(|_| SchemaError::EncodeError)
+    }
+}
+
+impl Decoder for ContainerStats {
+    fn decode(bytes: &[u8]) -> Result<Self, SchemaError> {
+        serde_cbor::from_slice(bytes)
+            .map_err(|_| SchemaError::DecodeError)
+    }
+}
+
+impl Encoder for ContainerStats {
     fn encode(&self) -> Result<Vec<u8>, SchemaError> {
         serde_cbor::to_vec(self)
             .map_err(|_| SchemaError::EncodeError)
@@ -104,4 +144,15 @@ mod date_format {
         let s = String::deserialize(deserializer)?;
         Utc.datetime_from_str(&s, FORMAT).map_err(serde::de::Error::custom)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn deserialize_container_info_map_from_json() {
+    use std::collections::HashMap;
+
+    // curl 'http://localhost:8080/api/v1.3/docker' > tests/metrics_data.json
+    const DATA: &str = include_str!("../../tests/metrics_data.json");
+    let info = serde_json::from_str::<HashMap<String, ContainerInfo>>(DATA).unwrap();
+    println!("{:#?}", info);
 }
