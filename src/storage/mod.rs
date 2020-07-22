@@ -5,11 +5,13 @@ mod p2p_storage;
 mod log_storage;
 mod rpc_storage;
 mod stat_storage;
+mod metric_storage;
 mod secondary_index;
 
 pub use p2p_storage::{P2pStore, P2pFilters};
 pub use log_storage::{LogStore, LogFilters};
 pub use rpc_storage::{RpcStore, RpcFilters};
+pub use metric_storage::{MetricStore, MetricFilters};
 pub(crate) use p2p_storage::secondary_indexes as p2p_indexes;
 pub(crate) use log_storage::secondary_indexes as log_indexes;
 pub(crate) use rpc_storage::secondary_indexes as rpc_indexes;
@@ -29,6 +31,7 @@ pub struct MessageStore {
     log_db: LogStore,
     rpc_db: RpcStore,
     stat_db: Arc<StatStore>,
+    metric_db: MetricStore,
     raw_db: Arc<DB>,
     max_db_size: Option<u64>,
 }
@@ -40,6 +43,7 @@ impl MessageStore {
             log_db: LogStore::new(db.clone()),
             rpc_db: RpcStore::new(db.clone()),
             stat_db: Arc::new(StatStore::new()),
+            metric_db: MetricStore::new(db.clone()),
             raw_db: db,
             max_db_size: None,
         }
@@ -59,6 +63,10 @@ impl MessageStore {
 
     pub fn stat(&self) -> &StatStore {
         &self.stat_db
+    }
+
+    pub fn metric(&self) -> &MetricStore {
+        &self.metric_db
     }
 }
 
