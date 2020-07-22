@@ -1,6 +1,19 @@
 version: "3"
 
 services:
+  cadvisor:
+    image: gcr.io/google-containers/cadvisor:latest
+    container_name: cadvisor
+    command:
+      - "--global_housekeeping_interval=1m"
+      - "--housekeeping_interval=1m"
+      - "--max_housekeeping_interval=1m"
+      - "--application_metrics_count_limit=1"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
   rust-debugger:
     image: debugger
     build: .
@@ -10,6 +23,8 @@ services:
     volumes:
       - "rust-shared-data:/tmp/volume"
     entrypoint: ./tezedge-debugger
+    depends_on:
+      - cadvisor
   rust-node:
     image: simplestakingcom/tezedge:v0.1.0
     hostname: node

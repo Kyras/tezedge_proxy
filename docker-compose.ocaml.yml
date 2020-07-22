@@ -4,8 +4,11 @@ services:
   cadvisor:
     image: gcr.io/google-containers/cadvisor:latest
     container_name: cadvisor
-    ports:
-      - 8080:8080
+    command:
+      - "--global_housekeeping_interval=1m"
+      - "--housekeeping_interval=1m"
+      - "--max_housekeeping_interval=1m"
+      - "--application_metrics_count_limit=1"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:rw
@@ -20,6 +23,8 @@ services:
     volumes:
       - "ocaml-shared-data:/tmp/volume"
     entrypoint: ./tezedge-debugger
+    depends_on:
+      - cadvisor
   ocaml-node:
     image: tezos/tezos:carthagenet
     hostname: node

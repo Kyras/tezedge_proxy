@@ -75,6 +75,7 @@ pub fn cfs() -> Vec<ColumnFamilyDescriptor> {
         P2pStore::descriptor(),
         LogStore::descriptor(),
         RpcStore::descriptor(),
+        MetricStore::descriptor(),
         p2p_indexes::RemoteAddrIndex::descriptor(),
         p2p_indexes::TypeIndex::descriptor(),
         p2p_indexes::IncomingIndex::descriptor(),
