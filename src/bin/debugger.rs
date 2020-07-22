@@ -23,9 +23,6 @@ use tezedge_debugger::system::{
 use reqwest::Url;
 use std::time::Duration;
 
-#[cfg(not(debug_assertions))]
-use tracing::field::display;
-
 fn open_database() -> Result<MessageStore, failure::Error> {
     let storage_path = format!("/tmp/volume/{}", get_ts());
     let path = Path::new(&storage_path);
@@ -51,11 +48,11 @@ async fn load_identity() -> Identity {
                 Ok(content) => {
                     match serde_json::from_str::<Identity>(&content) {
                         Ok(identity) => {
-                            info!(file_path = display(path), "loaded identity");
+                            info!(file_path = tracing::field::display(path), "loaded identity");
                             return identity;
                         }
                         Err(err) => {
-                            error!(error = display(&err), "identity file does not contains valid identity");
+                            error!(error = tracing::field::display(&err), "identity file does not contains valid identity");
                             exit(1);
                         }
                     }
@@ -63,7 +60,7 @@ async fn load_identity() -> Identity {
                 Err(err) => {
                     if last_try.elapsed().as_secs() >= 5 {
                         last_try = Instant::now();
-                        info!(error = display(&err), "waiting for identity");
+                        info!(error = tracing::field::display(&err), "waiting for identity");
                     }
                 }
             }
@@ -84,16 +81,16 @@ async fn main() -> Result<(), failure::Error> {
         exit(1);
     };
 
-    info!(ip_address = display(&local_address), "detected local IP address");
+    info!(ip_address = tracing::field::display(&local_address), "detected local IP address");
 
     let identity = load_identity().await;
 
-    info!(peer_id = display(&identity.peer_id), "loaded identity");
+    info!(peer_id = tracing::field::display(&identity.peer_id), "loaded identity");
 
     let storage = match open_database() {
         Ok(storage) => storage,
         Err(err) => {
-            error!(error = display(&err), "failed to open database");
+            error!(error = tracing::field::display(&err), "failed to open database");
             exit(1);
         }
     };
@@ -110,7 +107,7 @@ async fn main() -> Result<(), failure::Error> {
     };
 
     if let Err(err) = syslog_producer(settings.clone()).await {
-        error!(error = display(&err), "failed to build syslog server");
+        error!(error = tracing::field::display(&err), "failed to build syslog server");
         exit(1);
     }
 
@@ -121,7 +118,7 @@ async fn main() -> Result<(), failure::Error> {
             info!("system built");
         }
         Err(err) => {
-            error!(error = display(&err), "failed to build system");
+            error!(error = tracing::field::display(&err), "failed to build system");
             exit(1);
         }
     }
