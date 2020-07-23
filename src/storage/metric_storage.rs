@@ -47,7 +47,7 @@ impl MetricStore {
 
     pub fn get_cursor(&self, cursor_index: Option<u64>, limit: usize, filters: MetricFilters) -> Result<Vec<MetricMessage>, StorageError> {
         // helper;
-        // it will statically monomorphize into one of the 4 variants,
+        // it will be statically monomorphized into one of the 4 variants,
         // depends on the type of iterator
         fn skip_take<I>(it: I, index: Option<u64>, limit: usize) -> Vec<MetricMessage>
         where
@@ -59,6 +59,7 @@ impl MetricStore {
             }
         }
 
+        // TODO: maybe it should be optimized and write more idiomatically
         let it = self.kv.iterator(IteratorMode::End)?.filter_map(|(_, v)| v.ok());
         let ret = match (filters.start, filters.end) {
             (None, None) =>

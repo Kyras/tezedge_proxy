@@ -3,6 +3,7 @@
 
 use crate::system::SystemSettings;
 
+/// infinitely performs http requests to cadvisor and put response into db
 pub async fn metric_collector(settings: SystemSettings) {
     use tokio::time;
     use reqwest::Url;
@@ -34,18 +35,23 @@ pub async fn metric_collector(settings: SystemSettings) {
     }
     
     async fn fetch_and_store(url: &Url, storage: &MetricStore) -> Result<(), MetricCollectionError> {
+        // perform http GET request 
         let r = reqwest::get(url.clone())
             .await
             .map_err(MetricCollectionError::Reqwest)?
             .text()
             .await
             .map_err(MetricCollectionError::Io)?;
+        // deserialize the response as a json object, assume it is `ContainerInfo` map
         let info = serde_json::from_str::<HashMap<String, ContainerInfo>>(r.as_str())
             .map_err(MetricCollectionError::DeserializeJson)?;
-        let containers_info = info.values().collect::<Vec<_>>();
 
-        if let Some(container_info) = containers_info.into_iter().find(|c| c.spec.tezos_node()) {
-            let messages = container_info.stats.clone().into_iter().map(MetricMessage).collect();
+        // find the first container that contains tezos node, assume there is single such container
+        if let Some(container_info) = info.into_iter().find(|&(_, ref i)| i.tezos_node()) {
+            // take stats from the `ContainerInfo` object, wrap it as `MetricMessage`
+            // should optimize to noop, because `MetricMessage` is just a newtype
+            let messages = container_info.1.stats.into_iter().map(MetricMessage).collect();
+            // write into db
             storage
                 .store_message_array(messages)
                 .map_err(MetricCollectionError::StoreMessage)?;
@@ -53,6 +59,7 @@ pub async fn metric_collector(settings: SystemSettings) {
         Ok(())
     }
 
+    // prepare url to fetch statistics from docker containers
     // unwrap is safe because joining constant
     let url = settings.cadvisor_url
         .join("api/v1.3/docker")
@@ -65,6 +72,8 @@ pub async fn metric_collector(settings: SystemSettings) {
                 .unwrap_or_else(|e|
                     error!(error = tracing::field::display(&e), "failed to fetch and store metrics")
                 );
+            // this interval should be less equal to 
+            // `--housekeeping_interval` of the cadvisor in the docker-compose.*.yml config
             time::delay_for(settings.metrics_fetch_interval).await;
         }
     });

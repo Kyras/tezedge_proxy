@@ -37,15 +37,16 @@ pub struct ContainerSpec {
     image: String,
 }
 
-impl ContainerSpec {
+impl ContainerInfo {
     pub fn tezos_node(&self) -> bool {
-        self.image.find("tezos/tezos").is_some()
+        // image name might be tezos/tezos:carthagenet
+        // if it contains 'tezos/tezos' let's consider it contains tezos node
+        self.spec.image.find("tezos/tezos").is_some()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContainerStats {
-    //#[serde(with = "date_format")]
     pub timestamp: DateTime<Utc>,
 
     #[serde(default)]
