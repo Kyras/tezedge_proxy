@@ -21,11 +21,22 @@ pub struct ContainerInfo {
     #[serde(default)]
     pub subcontainers: Vec<ContainerInfo>,
 
-    #[serde(skip)]
-    pub spec: (),
+    pub spec: ContainerSpec,
 
     #[serde(default)]
     pub stats: Vec<ContainerStats>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContainerSpec {
+    #[serde(default)]
+    image: String,
+}
+
+impl ContainerSpec {
+    pub fn tezos_node(&self) -> bool {
+        self.image.find("tezos/tezos").is_some()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
