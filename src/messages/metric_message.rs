@@ -1,9 +1,12 @@
 use serde::{Serialize, Deserialize};
 use storage::persistent::{Decoder, Encoder, SchemaError};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, TimeZone};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetricMessage(pub ContainerStats);
+
+#[derive(Debug, Clone)]
+pub struct MetricMessageKey(pub DateTime<Utc>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ContainerInfo {
@@ -70,6 +73,27 @@ pub struct MemoryStats {
 pub struct MemoryStatsMemoryData {
     pub pgfault: u64,
     pub pgmajfault: u64,    
+}
+
+impl Decoder for MetricMessageKey {
+    fn decode(bytes: &[u8]) -> Result<Self, SchemaError> {
+        use byteorder::{ByteOrder, BigEndian};
+
+        let t = BigEndian::read_i64(&bytes[..8]);
+        Ok(MetricMessageKey(Utc.timestamp(t, 0)))
+    }
+}
+
+impl Encoder for MetricMessageKey {
+    fn encode(&self) -> Result<Vec<u8>, SchemaError> {
+        use byteorder::{ByteOrder, BigEndian};
+
+        let t = self.0.timestamp();
+        let mut v = Vec::with_capacity(8);
+        v.resize(8, 0);
+        BigEndian::write_i64(v.as_mut(), t);
+        Ok(v)
+    }
 }
 
 impl Decoder for MetricMessage {

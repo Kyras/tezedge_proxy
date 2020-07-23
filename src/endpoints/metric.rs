@@ -9,18 +9,21 @@ use warp::{
 };
 use serde::{Serialize, Deserialize};
 use warp::reply::{WithStatus, Json};
+use chrono::{DateTime, Utc};
 
 #[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct MetricCursor {
     pub cursor_id: Option<u64>,
     pub limit: Option<usize>,
+    pub start_time: Option<DateTime<Utc>>,
+    pub end_time: Option<DateTime<Utc>>,
 }
 
 impl Into<MetricFilters> for MetricCursor {
     fn into(self) -> MetricFilters {
         MetricFilters {
-            start: None,
-            end: None,
+            start: self.start_time,
+            end: self.end_time,
         }
     }
 }
