@@ -21,6 +21,11 @@ path = "src/bin/drone_test_client.rs"
 [dev-dependencies]
 ws = "0.9"
 url = "2.1"
+criterion = "0.3"
+
+[[bench]]
+name = "storage"
+harness = false
 
 [dependencies]
 hex = "0.4"
