@@ -23,6 +23,9 @@ use tezedge_debugger::system::{
 use reqwest::Url;
 use std::time::Duration;
 
+#[global_allocator]
+static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 fn open_database() -> Result<MessageStore, failure::Error> {
     let storage_path = format!("/tmp/volume/{}", get_ts());
     let path = Path::new(&storage_path);
