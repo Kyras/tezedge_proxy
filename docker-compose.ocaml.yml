@@ -14,6 +14,15 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+  builder:
+    image: builder
+    build:
+      context: ./
+      dockerfile: builder.dockerfile
+    environment:
+      - RUST_BACKTRACE=full
+    volumes:
+      - "ocaml-shared-data:/tmp/volume"
   ocaml-debugger:
     image: debugger
     build: .
@@ -25,6 +34,7 @@ services:
     entrypoint: ./tezedge-debugger
     depends_on:
       - cadvisor
+      - builder
   ocaml-node:
     image: tezos/tezos:carthagenet
     hostname: node
@@ -51,3 +61,7 @@ services:
 
 volumes:
   ocaml-shared-data:
+#    driver_opts:
+#      type: none
+#      device: ${PWD}/target/ocaml-shared-data
+#      o: bind

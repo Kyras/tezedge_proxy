@@ -14,6 +14,15 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+  builder:
+    image: builder
+    build:
+      context: ./
+      dockerfile: builder.dockerfile
+    environment:
+      - RUST_BACKTRACE=full
+    volumes:
+      - "rust-shared-data:/tmp/volume"
   rust-debugger:
     image: debugger
     build: .
@@ -25,6 +34,7 @@ services:
     entrypoint: ./tezedge-debugger
     depends_on:
       - cadvisor
+      - builder
   rust-node:
     image: simplestakingcom/tezedge:v0.1.0
     hostname: node

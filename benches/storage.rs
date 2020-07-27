@@ -14,7 +14,7 @@ fn open_database() -> Result<MessageStore, failure::Error> {
     // iterate entries in the directory
     // take only entries that are u128 numbers (timestamp)
     // choose maximal
-    let (_, entry) = std::fs::read_dir(Path::new("target/ocaml-shared-data"))?
+    let (_, entry) = std::fs::read_dir(Path::new("/tmp/volume"))?
         .filter_map(|entry| {
             entry.ok().and_then(|entry| {
                 let p = entry.path();
