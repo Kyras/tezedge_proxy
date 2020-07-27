@@ -10,18 +10,21 @@ use tezedge_debugger::{
     },
 };
 use std::process::exit;
-use tezedge_debugger::system::SystemSettings;
 use std::time::Instant;
 use tezedge_debugger::storage::{MessageStore, get_ts, cfs};
 use std::path::Path;
 use std::sync::Arc;
 use storage::persistent::open_kv;
 use tezedge_debugger::system::{
+    SystemSettings,
+    NotificationConfig,
+    metric_alert::AlertCondition,
+    notification::ChannelConfig,
     syslog_producer::syslog_producer,
     metric_collector::metric_collector,
 };
+use chrono::Duration;
 use reqwest::Url;
-use std::time::Duration;
 
 #[global_allocator]
 static ALLOC: jemallocator::Jemalloc = jemallocator::Jemalloc;
@@ -106,7 +109,17 @@ async fn main() -> Result<(), failure::Error> {
         rpc_port: 13031,
         node_rpc_port: 18732,
         cadvisor_url: Url::parse("http://cadvisor:8080").unwrap(),
-        metrics_fetch_interval: Duration::from_secs(60),
+        metrics_fetch_interval: Duration::minutes(1),
+        notification_cfg: NotificationConfig {
+            minimal_interval: Duration::minutes(5),
+            channel: ChannelConfig::Slack {
+                token: "".to_owned(),
+                channel_id: "".to_owned(),
+            },
+            condition: AlertCondition {
+                memory_usage_threshold: 1_000_000_000,
+            },
+        }
     };
 
     if let Err(err) = syslog_producer(settings.clone()).await {

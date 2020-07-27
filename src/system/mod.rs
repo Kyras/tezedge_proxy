@@ -1,11 +1,9 @@
 // Copyright (c) SimpleStaking and Tezedge Contributors
 // SPDX-License-Identifier: MIT
 
-use std::{
-    net::IpAddr,
-    time::Duration,
-};
+use std::net::IpAddr;
 use reqwest::Url;
+use chrono::Duration;
 use crate::utility::identity::Identity;
 use crate::storage::MessageStore;
 
@@ -16,6 +14,8 @@ pub mod processor;
 pub mod syslog_producer;
 pub mod rpc_parser;
 pub mod metric_collector;
+pub mod metric_alert;
+pub mod notification;
 
 pub mod prelude {
     pub use super::p2p_parser::spawn_p2p_parser;
@@ -38,4 +38,13 @@ pub struct SystemSettings {
     pub node_rpc_port: u16,
     pub cadvisor_url: Url,
     pub metrics_fetch_interval: Duration,
+    pub notification_cfg: NotificationConfig,
+}
+
+#[derive(Clone)]
+pub struct NotificationConfig {
+    /// minimal interval between notifications
+    pub minimal_interval: Duration,
+    pub channel: notification::ChannelConfig,
+    pub condition: metric_alert::AlertCondition,
 }
