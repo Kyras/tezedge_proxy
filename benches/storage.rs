@@ -17,6 +17,7 @@ fn open_database() -> Result<MessageStore, failure::Error> {
     let (_, entry) = std::fs::read_dir(Path::new("/tmp/volume"))?
         .filter_map(|entry| {
             entry.ok().and_then(|entry| {
+                println!("{:?}", entry);
                 let p = entry.path();
                 match p.components().last().unwrap() {
                     Component::Normal(name) =>

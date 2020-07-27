@@ -10,7 +10,7 @@ RUN mkdir -p ./src/bin && \
 COPY Cargo.lock .
 COPY Cargo.toml .
 # This step cache's our deps!
-RUN cargo install --bins --path . --root . && rm -R ./src
+RUN cargo install --bins --path . --root . && cargo build --release
 # Copy the rest of the files into the container
 COPY . .
 # Now this only builds our changes to things like src

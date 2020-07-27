@@ -25,6 +25,7 @@ criterion = "0.3"
 
 [[bench]]
 name = "storage"
+path = "benches/storage.rs"
 harness = false
 
 [dependencies]
