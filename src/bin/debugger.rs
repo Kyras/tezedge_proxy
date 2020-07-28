@@ -113,11 +113,11 @@ async fn main() -> Result<(), failure::Error> {
         notification_cfg: NotificationConfig {
             minimal_interval: Duration::minutes(5),
             channel: ChannelConfig::Slack {
-                token: "".to_owned(),
-                channel_id: "".to_owned(),
+                url: "https://hooks.slack.com/services/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".to_owned(),
+                channel_id: "#tezedge".to_owned(),
             },
             condition: AlertCondition {
-                memory_usage_threshold: 1_000_000_000,
+                memory_usage_threshold: 1_000_000,
             },
         }
     };

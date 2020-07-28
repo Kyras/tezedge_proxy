@@ -50,7 +50,7 @@ syslog_loose = "0.3"
 
 jemallocator = "0.3"
 
-slack = "0.24"
+slack-hook = "0.8"
 
 tracing = "0.1.15"
 tracing-subscriber = "0.2.5"
