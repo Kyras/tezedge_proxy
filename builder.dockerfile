@@ -1,6 +1,8 @@
 FROM kyras/tezedge_base:latest as builder
 WORKDIR /home/appuser/
 
+RUN rustup toolchain install nightly-2020-05-15 && rustup default nightly-2020-05-15
+
 # https://blog.mgattozzi.dev/caching-rust-docker-builds/
 # Prepare empty binaries and all the dependencies that we have in Cargo.toml
 RUN mkdir -p ./src/bin && \

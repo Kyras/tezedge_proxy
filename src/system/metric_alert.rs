@@ -1,13 +1,33 @@
 // Copyright (c) SimpleStaking and Tezedge Contributors
 // SPDX-License-Identifier: MIT
 
-use crate::messages::metric_message::MetricMessage;
+use sysinfo::System;
 use std::fmt;
+use crate::messages::metric_message::MetricMessage;
 
-#[derive(Clone)]
 /// Configuration of alert, conditions that trigger the alert
-pub struct AlertCondition {
-    pub memory_usage_threshold: u64,
+#[derive(Clone)]
+pub struct AlertConfig;
+
+impl AlertConfig {
+    pub fn condition_checker(&self) -> SystemCapacityObserver {
+        SystemCapacityObserver {
+            system: {
+                use sysinfo::{SystemExt, RefreshKind};
+
+                let r = RefreshKind::new().with_disks().with_memory().with_cpu();
+                let mut s = System::new_with_specifics(r);
+                s.refresh_disks();
+                s.refresh_memory();
+                s.refresh_cpu();
+                s
+            },
+        }
+    }
+}
+
+pub struct SystemCapacityObserver {
+    system: System,
 }
 
 pub struct Alert {
@@ -27,16 +47,14 @@ impl fmt::Display for Alert {
     }
 }
 
-impl AlertCondition {
-    pub fn check(&self, message: &MetricMessage) -> Option<Alert> {
-        let memory_usage = message.0.memory.usage;
-        if memory_usage >= self.memory_usage_threshold {
-            Some(Alert {
-                memory: Some(memory_usage),
-                cpu: None,
-            })
-        } else {
-            None
-        }
+impl SystemCapacityObserver {
+    pub fn observe(&mut self, message: &MetricMessage) {
+        let _ = (message, &mut self.system);
+        // TODO:
+    }
+
+    pub fn alert(&self) -> Option<Alert> {
+        // TODO:
+        None
     }
 }

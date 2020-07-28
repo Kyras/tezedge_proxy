@@ -15,7 +15,7 @@ pub async fn metric_collector(settings: SystemSettings) {
         storage::MetricStore,
         system::{
             notification::{Sender, SendError},
-            metric_alert::AlertCondition,
+            metric_alert::SystemCapacityObserver,
         },
     };
 
@@ -44,7 +44,7 @@ pub async fn metric_collector(settings: SystemSettings) {
     async fn fetch_and_store(
         url: &Url,
         storage: &MetricStore,
-        condition: &AlertCondition,
+        observer: &mut SystemCapacityObserver,
         notifier: Option<Sender>,
         minimal_interval: Duration,
         last_notification_time: &mut Option<DateTime<Utc>>,
@@ -63,24 +63,26 @@ pub async fn metric_collector(settings: SystemSettings) {
         // find the first container that contains tezos node, assume there is single such container
         if let Some(container_info) = info.into_iter().find(|&(_, ref i)| i.tezos_node()) {
             // take stats from the `ContainerInfo` object, wrap it as `MetricMessage`
-            // should optimize to noop, because `MetricMessage` is just a newtype
-            let messages: Vec<_> = container_info.1.stats.into_iter().map(MetricMessage).collect();
-            // choose the last message, normally it should be one in the collection,
-            // because `settings.metrics_fetch_interval` 
-            // close to `--housekeeping_interval` of the cadvisor
-            if let Some(message) = messages.last() {
-                // if conditions are met and has some notifier, send the notification
-                if let (Some(alert), Some(notifier)) = (condition.check(message), notifier) {
-                    let recent_send = if let Some(last) = *last_notification_time {
-                        Utc::now() - last > minimal_interval
-                    } else {
-                        false
-                    };
-                    if !recent_send {
-                        notifier.send(&alert.to_string())
-                            .map_err(MetricCollectionError::NotificationSend)?;
-                        *last_notification_time = Some(Utc::now());
-                    }
+            // and show it to `SystemCapacityObserver` in order to determine if should show an alert
+            let messages = container_info.1.stats
+                .into_iter()
+                .map(|x| {
+                    let message = MetricMessage(x);
+                    observer.observe(&message);
+                    message
+                })
+                .collect();
+            // if observer has some alert and we have some notifier, send the notification
+            if let (Some(alert), Some(notifier)) = (observer.alert(), notifier) {
+                let recent_send = if let Some(last) = *last_notification_time {
+                    Utc::now() - last > minimal_interval
+                } else {
+                    false
+                };
+                if !recent_send {
+                    notifier.send(&alert.to_string())
+                        .map_err(MetricCollectionError::NotificationSend)?;
+                    *last_notification_time = Some(Utc::now());
                 }
             }
             // write into db
@@ -115,11 +117,12 @@ pub async fn metric_collector(settings: SystemSettings) {
             // should clone it and drop after each iteration
             // it happens each `metrics_fetch_interval` few minute or so, minimal overhead
             let notifier = sender.clone();
+            let mut condition = settings.notification_cfg.alert_config.condition_checker();
 
             fetch_and_store(
                 &url,
                 settings.storage.metric(),
-                &settings.notification_cfg.condition,
+                &mut condition,
                 notifier,
                 settings.notification_cfg.minimal_interval.clone(),
                 &mut last_notification_time,

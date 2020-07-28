@@ -18,7 +18,7 @@ use storage::persistent::open_kv;
 use tezedge_debugger::system::{
     SystemSettings,
     NotificationConfig,
-    metric_alert::AlertCondition,
+    metric_alert::AlertConfig,
     notification::ChannelConfig,
     syslog_producer::syslog_producer,
     metric_collector::metric_collector,
@@ -116,10 +116,9 @@ async fn main() -> Result<(), failure::Error> {
                 url: "https://hooks.slack.com/services/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".to_owned(),
                 channel_id: "#tezedge".to_owned(),
             },
-            condition: AlertCondition {
-                memory_usage_threshold: 1_000_000,
-            },
-        }
+            alert_config: AlertConfig,
+        },
+        mount_point: "/tmp/volume".to_owned(),
     };
 
     if let Err(err) = syslog_producer(settings.clone()).await {
