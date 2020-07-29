@@ -14,7 +14,7 @@ pub async fn metric_collector(settings: SystemSettings) {
         messages::metric_message::{MetricMessage, ContainerInfo},
         storage::MetricStore,
         system::{
-            notification::{Sender, SendError},
+            notification::{Sender, SendError, NotificationMessage},
             metric_alert::SystemCapacityObserver,
         },
     };
@@ -73,16 +73,28 @@ pub async fn metric_collector(settings: SystemSettings) {
                 })
                 .collect();
             // if observer has some alert and we have some notifier, send the notification
-            if let (Some(alert), Some(notifier)) = (observer.alert(), notifier) {
+            if let Some(notifier) = notifier {
                 let recent_send = if let Some(last) = *last_notification_time {
                     Utc::now() - last > minimal_interval
                 } else {
                     false
                 };
                 if !recent_send {
-                    notifier.send(&alert.to_string())
-                        .map_err(MetricCollectionError::NotificationSend)?;
-                    *last_notification_time = Some(Utc::now());
+                    // TODO: separate last_notification_time for alert and status
+                    let alert = observer.alert();
+                    if !alert.is_empty() {
+                        let message = alert.into_iter().fold(String::new(), |s, item| format!("{}{}\n", s, item));
+                        notifier.send(&NotificationMessage::Warning(message))
+                            .map_err(MetricCollectionError::NotificationSend)?;
+                        *last_notification_time = Some(Utc::now());
+                    }
+                    let status = observer.status();
+                    if !status.is_empty() {
+                        let message = status.into_iter().fold(String::new(), |s, item| format!("{}{}\n", s, item));
+                        notifier.send(&NotificationMessage::Info(message))
+                            .map_err(MetricCollectionError::NotificationSend)?;
+                        *last_notification_time = Some(Utc::now());
+                    }
                 }
             }
             // write into db

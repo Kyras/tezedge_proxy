@@ -111,7 +111,7 @@ async fn main() -> Result<(), failure::Error> {
         cadvisor_url: Url::parse("http://cadvisor:8080").unwrap(),
         metrics_fetch_interval: Duration::minutes(1),
         notification_cfg: NotificationConfig {
-            minimal_interval: Duration::minutes(5),
+            minimal_interval: Duration::minutes(15),
             channel: ChannelConfig::Slack {
                 url: "https://hooks.slack.com/services/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".to_owned(),
                 channel_id: "#tezedge".to_owned(),

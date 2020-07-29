@@ -73,17 +73,30 @@ impl fmt::Display for SendError {
     }
 }
 
+pub enum NotificationMessage {
+    Warning(String),
+    Info(String),
+}
+
 impl Sender {
-    pub fn send(&self, msg: &String) -> Result<(), SendError> {
+    pub fn send(&self, msg: &NotificationMessage) -> Result<(), SendError> {
         match self {
             &Sender::Slack { ref sender, ref channel_id } => {
-                let payload = slack_hook::PayloadBuilder::new()
-                    .text(msg.as_str())
-                    .channel(channel_id.as_str())
-                    .username("[e2e][error]")
-                    .icon_emoji(":warning:")
-                    .build()
-                    .map_err(SendError::Slack)?;
+                let payload = match msg {
+                    NotificationMessage::Warning(ref msg) => slack_hook::PayloadBuilder::new()
+                        .text(msg.as_str())
+                        .channel(channel_id.as_str())
+                        .username("[e2e][error]")
+                        .icon_emoji(":warning:")
+                        .build()
+                        .map_err(SendError::Slack)?,
+                    NotificationMessage::Info(ref msg) => slack_hook::PayloadBuilder::new()
+                        .text(msg.as_str())
+                        .channel(channel_id.as_str())
+                        .username("[e2e][info]")
+                        .build()
+                        .map_err(SendError::Slack)?,
+                };
                 sender.send(&payload)
                     .map_err(SendError::Slack)
             },
